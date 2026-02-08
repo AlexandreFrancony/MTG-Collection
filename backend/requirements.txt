@@ -17,5 +17,8 @@ requests>=2.31.0
 # Production server
 gunicorn>=21.0.0
 
+# Google Cloud Vision (for card recognition)
+google-cloud-vision>=3.5.0
+
 # Utilities
 python-dotenv>=1.0.0

@@ -33,6 +33,7 @@ services:
       FLASK_DEBUG: ${FLASK_DEBUG:-false}
       PORT: 5000
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      GOOGLE_APPLICATION_CREDENTIALS: /app/google-credentials.json
     ports:
       - "5050:5000"  # Different port to avoid conflicts
     depends_on:
@@ -40,6 +41,7 @@ services:
         condition: service_healthy
     volumes:
       - mtg_uploads:/app/uploads
+      - ./backend/google-credentials.json:/app/google-credentials.json:ro
 
   # React Frontend (for production)
   frontend:

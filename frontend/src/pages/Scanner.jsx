@@ -69,7 +69,15 @@ export default function Scanner() {
   const handleAddAll = async () => {
     if (!results) return;
 
-    const cards = mode === 'single' ? (results.card ? [results.card] : []) : results.cards?.filter(Boolean) || [];
+    let cards = [];
+    if (mode === 'single') {
+      cards = results.card ? [results.card] : [];
+    } else {
+      // Handle both old format (card objects) and new format (result objects with .card)
+      cards = (results.cards || [])
+        .map((item) => (item?.card !== undefined ? item.card : item))
+        .filter(Boolean);
+    }
 
     for (const card of cards) {
       if (!addedCards.has(card.scryfall_id)) {
@@ -365,7 +373,17 @@ function SingleCardResult({ card, ocr_text, onAdd, onManualFound, added }) {
 
 function BinderResults({ cards, onAdd, onAddAll, onManualFound, added }) {
   const [editingIndex, setEditingIndex] = useState(null);
-  const validCards = cards.filter(Boolean);
+
+  // Handle both old format (card objects directly) and new format (result objects with .card property)
+  const normalizedCards = cards.map((item) => {
+    if (!item) return null;
+    // New format: { position, success, card, ... }
+    if (item.card !== undefined) return item.card;
+    // Old format: direct card object
+    return item;
+  });
+
+  const validCards = normalizedCards.filter(Boolean);
   const allAdded = validCards.length > 0 && validCards.every((c) => added.has(c.scryfall_id));
 
   return (
@@ -391,7 +409,7 @@ function BinderResults({ cards, onAdd, onAddAll, onManualFound, added }) {
       )}
 
       <div className="grid grid-cols-3 gap-2">
-        {cards.map((card, index) => (
+        {normalizedCards.map((card, index) => (
           <div key={index} className="aspect-[2.5/3.5] bg-gray-800 rounded relative overflow-hidden">
             {card ? (
               <>

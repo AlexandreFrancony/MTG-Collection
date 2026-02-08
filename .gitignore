@@ -37,3 +37,7 @@ logs/
 # Uploads
 uploads/
 temp/
+
+# Google Cloud credentials (never commit!)
+google-credentials.json
+*-credentials.json
