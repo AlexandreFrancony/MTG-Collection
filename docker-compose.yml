@@ -1,7 +1,21 @@
-version: '3.8'
+# MTG Collection Tracker
+# Deploy on Raspberry Pi 4
+#
+# NOTE: This app is behind the central nginx proxy (Infra repo)
+# No ports are exposed directly - traffic comes through nginx-proxy
+#
+# Structure on Pi:
+#   ~/infra/           <- Central proxy (handles SSL & routing)
+#   ~/MTG-Collection/  <- this repo
+#
+# Usage:
+#   cd ~/MTG-Collection
+#   docker compose up -d
 
 services:
-  # PostgreSQL Database
+  # ============================================
+  # DATABASE - PostgreSQL
+  # ============================================
   db:
     image: postgres:15-alpine
     container_name: mtg-db
@@ -13,15 +27,23 @@ services:
     volumes:
       - mtg_postgres_data:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    ports:
-      - "5433:5432"  # Different port to avoid conflicts with other projects
+    expose:
+      - "5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U mtg -d mtg_collection"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Python Flask Backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================
+  # BACKEND - Python Flask API
+  # ============================================
   backend:
     build:
       context: ./backend
@@ -32,10 +54,10 @@ services:
       DATABASE_URL: postgresql://mtg:${DB_PASSWORD:-mtg_secret}@db:5432/mtg_collection
       FLASK_DEBUG: ${FLASK_DEBUG:-false}
       PORT: 5000
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      FRONTEND_URL: ${FRONTEND_URL:-https://mtg.francony.fr}
       GOOGLE_APPLICATION_CREDENTIALS: /app/google-credentials.json
-    ports:
-      - "5050:5000"  # Different port to avoid conflicts
+    expose:
+      - "5000"
     depends_on:
       db:
         condition: service_healthy
@@ -43,20 +65,40 @@ services:
       - mtg_uploads:/app/uploads
       - ./backend/google-credentials.json:/app/google-credentials.json:ro
 
-  # React Frontend (for production)
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================
+  # FRONTEND - React via Nginx (internal only)
+  # ============================================
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: ${API_URL:-http://localhost:5050/api}
+        # API URL - empty because nginx-proxy handles /api routing
+        VITE_API_URL: ""
     container_name: mtg-frontend
     restart: unless-stopped
-    ports:
-      - "5051:80"  # Different port to avoid conflicts
+    expose:
+      - "80"
     depends_on:
       - backend
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   mtg_postgres_data:
   mtg_uploads:
+
+networks:
+  default:
+    name: mtg_network
+    driver: bridge
