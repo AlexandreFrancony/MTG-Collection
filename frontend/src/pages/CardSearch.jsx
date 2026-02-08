@@ -114,7 +114,7 @@ export default function CardSearch() {
                     {card.set_name} • {card.rarity}
                   </p>
                   {card.price > 0 && (
-                    <p className="text-xs text-green-400">${card.price.toFixed(2)}</p>
+                    <p className="text-xs text-green-400">{card.price.toFixed(2)}€</p>
                   )}
 
                   <button

@@ -1,10 +1,25 @@
 """OCR service for reading card names from images"""
 import cv2
 import numpy as np
+import platform
+import os
 
 # Tesseract will be imported only when needed (might not be installed)
 try:
     import pytesseract
+
+    # Set Tesseract path for Windows
+    if platform.system() == 'Windows':
+        tesseract_paths = [
+            r'C:\Program Files\Tesseract-OCR\tesseract.exe',
+            r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
+            os.path.expanduser(r'~\AppData\Local\Programs\Tesseract-OCR\tesseract.exe'),
+        ]
+        for path in tesseract_paths:
+            if os.path.exists(path):
+                pytesseract.pytesseract.tesseract_cmd = path
+                break
+
     TESSERACT_AVAILABLE = True
 except ImportError:
     TESSERACT_AVAILABLE = False

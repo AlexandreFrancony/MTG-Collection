@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
-import { Camera, Upload, Loader2, Check, X, Plus } from 'lucide-react';
-import { scanSingleCard, scanBinderPage, addCardToCollection } from '../utils/api';
+import { Camera, Upload, Loader2, Check, X, Plus, Search } from 'lucide-react';
+import { scanSingleCard, scanBinderPage, addCardToCollection, searchCards } from '../utils/api';
 import CardImage from '../components/CardImage';
 
 export default function Scanner() {
@@ -76,6 +76,18 @@ export default function Scanner() {
         await handleAddCard(card);
       }
     }
+  };
+
+  // Update a single card result from manual search
+  const handleManualCardFound = (card) => {
+    setResults({ ...results, card });
+  };
+
+  // Update a binder card at specific index from manual search
+  const handleBinderCardFound = (index, card) => {
+    const newCards = [...(results?.cards || Array(9).fill(null))];
+    newCards[index] = card;
+    setResults({ ...results, cards: newCards });
   };
 
   const reset = () => {
@@ -188,11 +200,23 @@ export default function Scanner() {
             )}
 
             {results && mode === 'single' && (
-              <SingleCardResult card={results.card} ocr_text={results.ocr_text} onAdd={handleAddCard} added={addedCards} />
+              <SingleCardResult
+                card={results.card}
+                ocr_text={results.ocr_text}
+                onAdd={handleAddCard}
+                onManualFound={handleManualCardFound}
+                added={addedCards}
+              />
             )}
 
             {results && mode === 'binder' && (
-              <BinderResults cards={results.cards || []} onAdd={handleAddCard} onAddAll={handleAddAll} added={addedCards} />
+              <BinderResults
+                cards={results.cards || []}
+                onAdd={handleAddCard}
+                onAddAll={handleAddAll}
+                onManualFound={handleBinderCardFound}
+                added={addedCards}
+              />
             )}
           </div>
         </div>
@@ -201,20 +225,99 @@ export default function Scanner() {
   );
 }
 
-function SingleCardResult({ card, ocr_text, onAdd, added }) {
+// Manual search component for when OCR fails
+function ManualCardSearch({ onCardFound, placeholder = "Type card name..." }) {
+  const [query, setQuery] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+
+  const handleSearch = async (value) => {
+    setQuery(value);
+
+    if (value.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    try {
+      setSearching(true);
+      const data = await searchCards(value);
+      setSuggestions(data.cards?.slice(0, 5) || []);
+    } catch (err) {
+      console.error('Search failed:', err);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const selectCard = (card) => {
+    onCardFound(card);
+    setQuery('');
+    setSuggestions([]);
+  };
+
+  return (
+    <div className="relative">
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => handleSearch(e.target.value)}
+            placeholder={placeholder}
+            className="w-full pl-8 pr-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-mtg-gold"
+          />
+          {searching && (
+            <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 animate-spin text-gray-400" size={16} />
+          )}
+        </div>
+      </div>
+
+      {/* Suggestions dropdown */}
+      {suggestions.length > 0 && (
+        <div className="absolute z-10 w-full mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-lg overflow-hidden">
+          {suggestions.map((card) => (
+            <button
+              key={card.scryfall_id}
+              onClick={() => selectCard(card)}
+              className="w-full flex items-center gap-2 p-2 hover:bg-gray-600 text-left"
+            >
+              <img src={card.image_uri} alt="" className="w-8 h-11 object-cover rounded" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{card.name}</p>
+                <p className="text-xs text-gray-400">{card.set_name}</p>
+              </div>
+              {card.price > 0 && (
+                <span className="text-xs text-green-400">{card.price.toFixed(2)}€</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SingleCardResult({ card, ocr_text, onAdd, onManualFound, added }) {
   if (!card) {
     return (
-      <div className="bg-gray-800 rounded-lg p-4">
-        <div className="flex items-center gap-2 text-yellow-400 mb-2">
+      <div className="bg-gray-800 rounded-lg p-4 space-y-4">
+        <div className="flex items-center gap-2 text-yellow-400">
           <X size={20} />
           <span className="font-medium">Could not identify card</span>
         </div>
-        <p className="text-sm text-gray-400">
-          OCR detected: "{ocr_text || 'nothing'}"
-        </p>
-        <p className="text-sm text-gray-400 mt-2">
-          Try taking a clearer photo with good lighting.
-        </p>
+        {ocr_text && (
+          <p className="text-sm text-gray-400">
+            OCR detected: "{ocr_text}"
+          </p>
+        )}
+
+        {/* Manual search fallback */}
+        <div>
+          <p className="text-sm text-gray-300 mb-2">Search manually:</p>
+          <ManualCardSearch onCardFound={onManualFound} />
+        </div>
       </div>
     );
   }
@@ -229,7 +332,7 @@ function SingleCardResult({ card, ocr_text, onAdd, added }) {
           <h4 className="font-bold text-lg">{card.name}</h4>
           <p className="text-gray-400 text-sm">{card.set_name}</p>
           <p className="text-gray-400 text-sm">{card.type_line}</p>
-          {card.price > 0 && <p className="text-green-400 mt-2">${card.price.toFixed(2)}</p>}
+          {card.price > 0 && <p className="text-green-400 mt-2">{card.price.toFixed(2)}€</p>}
 
           <button
             onClick={() => onAdd(card)}
@@ -248,15 +351,22 @@ function SingleCardResult({ card, ocr_text, onAdd, added }) {
               </>
             )}
           </button>
+
+          {/* Option to search for different card */}
+          <div className="mt-3 pt-3 border-t border-gray-700">
+            <p className="text-xs text-gray-400 mb-2">Wrong card? Search manually:</p>
+            <ManualCardSearch onCardFound={onManualFound} placeholder="Search different card..." />
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function BinderResults({ cards, onAdd, onAddAll, added }) {
+function BinderResults({ cards, onAdd, onAddAll, onManualFound, added }) {
+  const [editingIndex, setEditingIndex] = useState(null);
   const validCards = cards.filter(Boolean);
-  const allAdded = validCards.every((c) => added.has(c.scryfall_id));
+  const allAdded = validCards.length > 0 && validCards.every((c) => added.has(c.scryfall_id));
 
   return (
     <div className="space-y-4">
@@ -291,22 +401,59 @@ function BinderResults({ cards, onAdd, onAddAll, added }) {
                     <Check size={24} className="text-white" />
                   </div>
                 )}
-                <button
-                  onClick={() => onAdd(card)}
-                  disabled={added.has(card.scryfall_id)}
-                  className="absolute bottom-1 right-1 p-1 bg-mtg-gold text-gray-900 rounded opacity-0 hover:opacity-100 transition-opacity disabled:opacity-0"
-                >
-                  <Plus size={16} />
-                </button>
+                <div className="absolute bottom-1 right-1 flex gap-1">
+                  <button
+                    onClick={() => setEditingIndex(index)}
+                    className="p-1 bg-gray-700 text-gray-300 rounded text-xs hover:bg-gray-600"
+                    title="Search different card"
+                  >
+                    <Search size={12} />
+                  </button>
+                  <button
+                    onClick={() => onAdd(card)}
+                    disabled={added.has(card.scryfall_id)}
+                    className="p-1 bg-mtg-gold text-gray-900 rounded disabled:opacity-50"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
               </>
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-600 text-xs text-center p-2">
-                Empty or unreadable
+              <div
+                className="w-full h-full flex flex-col items-center justify-center text-gray-500 text-xs text-center p-2 cursor-pointer hover:bg-gray-700"
+                onClick={() => setEditingIndex(index)}
+              >
+                <Search size={20} className="mb-1" />
+                <span>Click to search</span>
               </div>
             )}
           </div>
         ))}
       </div>
+
+      {/* Manual search modal for binder slot */}
+      {editingIndex !== null && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg p-4 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="font-medium">Search Card for Slot {editingIndex + 1}</h4>
+              <button
+                onClick={() => setEditingIndex(null)}
+                className="text-gray-400 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <ManualCardSearch
+              onCardFound={(card) => {
+                onManualFound(editingIndex, card);
+                setEditingIndex(null);
+              }}
+              placeholder="Type card name..."
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,67 +1,45 @@
-"""Collection management endpoints"""
+"""Collection management endpoints - In-memory storage for development"""
 from flask import Blueprint, jsonify, request
-from ..db import get_cursor
+from datetime import datetime
 
 collection_bp = Blueprint('collection', __name__)
+
+# In-memory storage (will be replaced with DB in production)
+_collection = []
+_next_id = 1
 
 
 @collection_bp.route('/', methods=['GET'])
 def get_collection():
     """Get the entire collection with optional filters"""
-    try:
-        # Get query parameters for filtering
-        search = request.args.get('search', '')
-        set_code = request.args.get('set', '')
+    search = request.args.get('search', '').lower()
+    set_code = request.args.get('set', '')
 
-        with get_cursor() as cursor:
-            query = """
-                SELECT id, scryfall_id, card_name, set_code, set_name,
-                       collector_number, rarity, mana_cost, type_line,
-                       image_url, price_usd, quantity, foil, condition, notes,
-                       added_at
-                FROM collection
-                WHERE 1=1
-            """
-            params = []
+    cards = _collection
 
-            if search:
-                query += " AND card_name ILIKE %s"
-                params.append(f'%{search}%')
+    if search:
+        cards = [c for c in cards if search in c['card_name'].lower()]
 
-            if set_code:
-                query += " AND set_code = %s"
-                params.append(set_code)
+    if set_code:
+        cards = [c for c in cards if c.get('set_code') == set_code]
 
-            query += " ORDER BY card_name ASC"
+    # Calculate totals
+    total_cards = sum(c['quantity'] for c in cards)
+    total_value = sum((c.get('price_usd') or 0) * c['quantity'] for c in cards)
 
-            cursor.execute(query, params)
-            cards = cursor.fetchall()
-
-            # Calculate totals
-            total_cards = sum(c['quantity'] for c in cards)
-            total_value = sum(
-                (c['price_usd'] or 0) * c['quantity']
-                for c in cards
-            )
-
-        return jsonify({
-            'cards': [dict(c) for c in cards],
-            'unique_cards': len(cards),
-            'total_cards': total_cards,
-            'total_value': float(total_value)
-        })
-
-    except Exception as e:
-        print(f"Error fetching collection: {e}")
-        return jsonify({'error': 'Failed to fetch collection'}), 500
+    return jsonify({
+        'cards': cards,
+        'unique_cards': len(cards),
+        'total_cards': total_cards,
+        'total_value': float(total_value)
+    })
 
 
 @collection_bp.route('/', methods=['POST'])
 def add_card():
-    """
-    Add a card to the collection
-    Body: { scryfall_id, name, set_code, collector_number, quantity?, foil?, ... }
-    """
+    """Add a card to the collection"""
+    global _next_id
+
     data = request.json
 
     if not data:
@@ -72,79 +50,54 @@ def add_card():
     if missing:
         return jsonify({'error': f'Missing fields: {", ".join(missing)}'}), 400
 
-    try:
-        with get_cursor() as cursor:
-            # Check if card already exists (same scryfall_id and foil status)
-            cursor.execute(
-                """SELECT id, quantity FROM collection
-                   WHERE scryfall_id = %s AND foil = %s""",
-                [data['scryfall_id'], data.get('foil', False)]
-            )
-            existing = cursor.fetchone()
+    # Check if card already exists
+    existing = next(
+        (c for c in _collection
+         if c['scryfall_id'] == data['scryfall_id'] and c.get('foil') == data.get('foil', False)),
+        None
+    )
 
-            if existing:
-                # Update quantity
-                new_quantity = existing['quantity'] + data.get('quantity', 1)
-                cursor.execute(
-                    "UPDATE collection SET quantity = %s WHERE id = %s RETURNING *",
-                    [new_quantity, existing['id']]
-                )
-                card = cursor.fetchone()
-                return jsonify(dict(card))
+    if existing:
+        existing['quantity'] += data.get('quantity', 1)
+        return jsonify(existing)
 
-            # Insert new card
-            cursor.execute(
-                """INSERT INTO collection
-                   (scryfall_id, card_name, set_code, set_name, collector_number,
-                    rarity, mana_cost, type_line, image_url, price_usd,
-                    quantity, foil, condition, notes)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                   RETURNING *""",
-                [
-                    data['scryfall_id'],
-                    data['name'],
-                    data.get('set_code'),
-                    data.get('set_name'),
-                    data.get('collector_number'),
-                    data.get('rarity'),
-                    data.get('mana_cost'),
-                    data.get('type_line'),
-                    data.get('image_uri'),
-                    data.get('price'),
-                    data.get('quantity', 1),
-                    data.get('foil', False),
-                    data.get('condition', 'NM'),
-                    data.get('notes')
-                ]
-            )
-            card = cursor.fetchone()
+    # Add new card
+    card = {
+        'id': _next_id,
+        'scryfall_id': data['scryfall_id'],
+        'card_name': data['name'],
+        'set_code': data.get('set_code'),
+        'set_name': data.get('set_name'),
+        'collector_number': data.get('collector_number'),
+        'rarity': data.get('rarity'),
+        'mana_cost': data.get('mana_cost'),
+        'type_line': data.get('type_line'),
+        'image_url': data.get('image_uri'),
+        'price_usd': data.get('price'),
+        'quantity': data.get('quantity', 1),
+        'foil': data.get('foil', False),
+        'condition': data.get('condition', 'NM'),
+        'notes': data.get('notes'),
+        'added_at': datetime.now().isoformat()
+    }
+    _next_id += 1
+    _collection.append(card)
 
-        return jsonify(dict(card)), 201
-
-    except Exception as e:
-        print(f"Error adding card: {e}")
-        return jsonify({'error': 'Failed to add card'}), 500
+    return jsonify(card), 201
 
 
 @collection_bp.route('/<int:card_id>', methods=['DELETE'])
 def remove_card(card_id):
     """Remove a card from the collection"""
-    try:
-        with get_cursor() as cursor:
-            cursor.execute(
-                "DELETE FROM collection WHERE id = %s RETURNING id",
-                [card_id]
-            )
-            deleted = cursor.fetchone()
+    global _collection
 
-            if not deleted:
-                return jsonify({'error': 'Card not found'}), 404
+    original_len = len(_collection)
+    _collection = [c for c in _collection if c['id'] != card_id]
 
-        return jsonify({'success': True})
+    if len(_collection) == original_len:
+        return jsonify({'error': 'Card not found'}), 404
 
-    except Exception as e:
-        print(f"Error removing card: {e}")
-        return jsonify({'error': 'Failed to remove card'}), 500
+    return jsonify({'success': True})
 
 
 @collection_bp.route('/<int:card_id>', methods=['PATCH'])
@@ -155,103 +108,75 @@ def update_card(card_id):
     if not data:
         return jsonify({'error': 'Request body required'}), 400
 
-    try:
-        # Build dynamic update query
-        allowed_fields = ['quantity', 'condition', 'notes', 'foil']
-        updates = []
-        values = []
+    card = next((c for c in _collection if c['id'] == card_id), None)
 
-        for field in allowed_fields:
-            if field in data:
-                updates.append(f"{field} = %s")
-                values.append(data[field])
+    if not card:
+        return jsonify({'error': 'Card not found'}), 404
 
-        if not updates:
-            return jsonify({'error': 'No valid fields to update'}), 400
+    # Update allowed fields
+    allowed_fields = ['quantity', 'condition', 'notes', 'foil']
+    for field in allowed_fields:
+        if field in data:
+            card[field] = data[field]
 
-        values.append(card_id)
+    # If quantity is 0 or less, remove the card
+    if card.get('quantity', 1) <= 0:
+        _collection.remove(card)
+        return jsonify({'success': True, 'removed': True})
 
-        with get_cursor() as cursor:
-            query = f"""
-                UPDATE collection
-                SET {', '.join(updates)}
-                WHERE id = %s
-                RETURNING *
-            """
-            cursor.execute(query, values)
-            card = cursor.fetchone()
-
-            if not card:
-                return jsonify({'error': 'Card not found'}), 404
-
-            # If quantity is 0 or less, delete the card
-            if card['quantity'] <= 0:
-                cursor.execute(
-                    "DELETE FROM collection WHERE id = %s",
-                    [card_id]
-                )
-                return jsonify({'success': True, 'removed': True})
-
-        return jsonify(dict(card))
-
-    except Exception as e:
-        print(f"Error updating card: {e}")
-        return jsonify({'error': 'Failed to update card'}), 500
+    return jsonify(card)
 
 
 @collection_bp.route('/stats', methods=['GET'])
 def get_stats():
     """Get collection statistics"""
-    try:
-        with get_cursor() as cursor:
-            # Total cards and value
-            cursor.execute("""
-                SELECT
-                    COUNT(*) as unique_cards,
-                    SUM(quantity) as total_cards,
-                    SUM(price_usd * quantity) as total_value
-                FROM collection
-            """)
-            totals = cursor.fetchone()
-
-            # Cards by set
-            cursor.execute("""
-                SELECT set_code, set_name, COUNT(*) as cards, SUM(quantity) as total
-                FROM collection
-                GROUP BY set_code, set_name
-                ORDER BY total DESC
-                LIMIT 10
-            """)
-            by_set = cursor.fetchall()
-
-            # Cards by rarity
-            cursor.execute("""
-                SELECT rarity, COUNT(*) as cards, SUM(quantity) as total
-                FROM collection
-                GROUP BY rarity
-                ORDER BY total DESC
-            """)
-            by_rarity = cursor.fetchall()
-
-            # Most valuable cards
-            cursor.execute("""
-                SELECT card_name, set_code, price_usd, quantity, foil
-                FROM collection
-                WHERE price_usd IS NOT NULL
-                ORDER BY price_usd DESC
-                LIMIT 10
-            """)
-            most_valuable = cursor.fetchall()
-
+    if not _collection:
         return jsonify({
-            'unique_cards': totals['unique_cards'] or 0,
-            'total_cards': totals['total_cards'] or 0,
-            'total_value': float(totals['total_value'] or 0),
-            'by_set': [dict(s) for s in by_set],
-            'by_rarity': [dict(r) for r in by_rarity],
-            'most_valuable': [dict(c) for c in most_valuable]
+            'unique_cards': 0,
+            'total_cards': 0,
+            'total_value': 0,
+            'by_set': [],
+            'by_rarity': [],
+            'most_valuable': []
         })
 
-    except Exception as e:
-        print(f"Error fetching stats: {e}")
-        return jsonify({'error': 'Failed to fetch stats'}), 500
+    # Calculate totals
+    unique_cards = len(_collection)
+    total_cards = sum(c['quantity'] for c in _collection)
+    total_value = sum((c.get('price_usd') or 0) * c['quantity'] for c in _collection)
+
+    # Cards by set
+    sets = {}
+    for c in _collection:
+        key = c.get('set_code') or 'unknown'
+        if key not in sets:
+            sets[key] = {'set_code': key, 'set_name': c.get('set_name'), 'cards': 0, 'total': 0}
+        sets[key]['cards'] += 1
+        sets[key]['total'] += c['quantity']
+    by_set = sorted(sets.values(), key=lambda x: x['total'], reverse=True)[:10]
+
+    # Cards by rarity
+    rarities = {}
+    for c in _collection:
+        key = c.get('rarity') or 'unknown'
+        if key not in rarities:
+            rarities[key] = {'rarity': key, 'cards': 0, 'total': 0}
+        rarities[key]['cards'] += 1
+        rarities[key]['total'] += c['quantity']
+    by_rarity = sorted(rarities.values(), key=lambda x: x['total'], reverse=True)
+
+    # Most valuable cards
+    most_valuable = sorted(
+        [c for c in _collection if c.get('price_usd')],
+        key=lambda x: x.get('price_usd', 0),
+        reverse=True
+    )[:10]
+
+    return jsonify({
+        'unique_cards': unique_cards,
+        'total_cards': total_cards,
+        'total_value': float(total_value),
+        'by_set': by_set,
+        'by_rarity': by_rarity,
+        'most_valuable': most_valuable
+    })

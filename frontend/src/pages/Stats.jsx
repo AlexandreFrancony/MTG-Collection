@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2, TrendingUp, Package, DollarSign, Star } from 'lucide-react';
+import { Loader2, TrendingUp, Package, Euro, Star } from 'lucide-react';
 import { getCollectionStats } from '../utils/api';
 
 export default function Stats() {
@@ -57,9 +57,9 @@ export default function Stats() {
           value={stats.total_cards}
         />
         <StatCard
-          icon={<DollarSign className="text-yellow-400" />}
+          icon={<Euro className="text-yellow-400" />}
           label="Total Value"
-          value={`$${stats.total_value.toFixed(2)}`}
+          value={`${stats.total_value.toFixed(2)}€`}
         />
       </div>
 
@@ -110,7 +110,7 @@ export default function Stats() {
       {/* Most valuable */}
       <div className="bg-gray-800 rounded-lg p-4">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-          <DollarSign size={20} /> Most Valuable Cards
+          <Euro size={20} /> Most Valuable Cards
         </h3>
         {stats.most_valuable.length === 0 ? (
           <p className="text-gray-400">No priced cards yet</p>
@@ -139,7 +139,7 @@ export default function Stats() {
                     <td className="py-2 text-gray-400 uppercase">{card.set_code}</td>
                     <td className="py-2 text-center">{card.quantity}</td>
                     <td className="py-2 text-right text-green-400">
-                      ${parseFloat(card.price_usd).toFixed(2)}
+                      {parseFloat(card.price_usd).toFixed(2)}€
                     </td>
                   </tr>
                 ))}

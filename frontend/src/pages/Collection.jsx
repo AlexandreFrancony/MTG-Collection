@@ -69,7 +69,7 @@ export default function Collection() {
           <h2 className="text-2xl font-bold">My Collection</h2>
           <p className="text-gray-400">
             {stats.unique_cards} unique cards • {stats.total_cards} total •{' '}
-            <span className="text-green-400">${stats.total_value.toFixed(2)}</span>
+            <span className="text-green-400">{stats.total_value.toFixed(2)}€</span>
           </p>
         </div>
 

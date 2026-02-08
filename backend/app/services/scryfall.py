@@ -33,10 +33,14 @@ def _format_card(card_data):
 
     image_uri = image_uris.get('normal') or image_uris.get('small') or image_uris.get('large')
 
-    # Get price (USD)
+    # Get price (EUR from Cardmarket, fallback to USD)
     prices = card_data.get('prices', {})
     price = None
-    if prices.get('usd'):
+    if prices.get('eur'):
+        price = float(prices['eur'])
+    elif prices.get('eur_foil'):
+        price = float(prices['eur_foil'])
+    elif prices.get('usd'):
         price = float(prices['usd'])
     elif prices.get('usd_foil'):
         price = float(prices['usd_foil'])
@@ -53,7 +57,7 @@ def _format_card(card_data):
         'oracle_text': card_data.get('oracle_text'),
         'image_uri': image_uri,
         'price': price,
-        'price_foil': float(prices['usd_foil']) if prices.get('usd_foil') else None,
+        'price_foil': float(prices.get('eur_foil') or prices.get('usd_foil') or 0) or None,
         'scryfall_uri': card_data.get('scryfall_uri'),
     }
 
