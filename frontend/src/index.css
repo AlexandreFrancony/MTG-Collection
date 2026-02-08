@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-gray-900 text-gray-100;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Card hover effects */
+.card-hover {
+  @apply transition-transform duration-200;
+}
+
+.card-hover:hover {
+  @apply scale-105 z-10;
+}
+
+/* Mana symbols */
+.mana-symbol {
+  @apply inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold;
+}
+
+.mana-W { @apply bg-amber-100 text-amber-900; }
+.mana-U { @apply bg-blue-500 text-white; }
+.mana-B { @apply bg-gray-800 text-gray-100; }
+.mana-R { @apply bg-red-500 text-white; }
+.mana-G { @apply bg-green-600 text-white; }
+.mana-C { @apply bg-gray-400 text-gray-900; }
+
+/* Rarity colors */
+.rarity-common { @apply text-gray-400; }
+.rarity-uncommon { @apply text-gray-300; }
+.rarity-rare { @apply text-yellow-400; }
+.rarity-mythic { @apply text-orange-500; }
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-600 rounded;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500;
+}
