@@ -5,8 +5,8 @@
 # No ports are exposed directly - traffic comes through nginx-proxy
 #
 # Structure on Pi:
-#   ~/infra/           <- Central proxy (handles SSL & routing)
-#   ~/MTG-Collection/  <- this repo
+#   ~/Hosting/Infra/           <- Central proxy (handles SSL & routing)
+#   ~/Hosting/MTG-Collection/  <- this repo
 #
 # Usage:
 #   cd ~/MTG-Collection
@@ -63,7 +63,7 @@ services:
         condition: service_healthy
     volumes:
       - mtg_uploads:/app/uploads
-      - ./backend/google-credentials.json:/app/google-credentials.json:ro
+      - /home/bloster/Hosting/MTG-Collection/backend/google-credentials.json:/app/google-credentials.json:ro
 
     logging:
       driver: "json-file"
