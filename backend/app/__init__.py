@@ -15,6 +15,7 @@ def create_app():
 
     # Configuration
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
+    app.url_map.strict_slashes = False  # Don't redirect /path to /path/
 
     # CORS - allow frontend
     CORS(app, origins=[
