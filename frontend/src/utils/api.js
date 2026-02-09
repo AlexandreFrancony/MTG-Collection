@@ -83,3 +83,10 @@ export const scanBinderPage = (file) => {
     body: formData,
   });
 };
+
+// Import decklist
+export const importDecklist = (decklist) =>
+  request('/collection/import', {
+    method: 'POST',
+    body: JSON.stringify({ decklist }),
+  });

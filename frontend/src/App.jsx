@@ -1,8 +1,9 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { Library, Search, Camera, BarChart3 } from 'lucide-react';
+import { Library, Search, Camera, FileText, BarChart3 } from 'lucide-react';
 import Collection from './pages/Collection';
 import CardSearch from './pages/CardSearch';
 import Scanner from './pages/Scanner';
+import Import from './pages/Import';
 import Stats from './pages/Stats';
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
                 <NavItem to="/" icon={<Library size={20} />} label="Collection" />
                 <NavItem to="/search" icon={<Search size={20} />} label="Search" />
                 <NavItem to="/scan" icon={<Camera size={20} />} label="Scan" />
+                <NavItem to="/import" icon={<FileText size={20} />} label="Import" />
                 <NavItem to="/stats" icon={<BarChart3 size={20} />} label="Stats" />
               </nav>
             </div>
@@ -32,6 +34,7 @@ function App() {
             <Route path="/" element={<Collection />} />
             <Route path="/search" element={<CardSearch />} />
             <Route path="/scan" element={<Scanner />} />
+            <Route path="/import" element={<Import />} />
             <Route path="/stats" element={<Stats />} />
           </Routes>
         </main>

@@ -1,6 +1,8 @@
 """Collection management endpoints - PostgreSQL storage"""
+import re
 from flask import Blueprint, jsonify, request
 from app.db import get_cursor
+from app.services.scryfall import get_card_by_name
 
 collection_bp = Blueprint('collection', __name__)
 
@@ -233,3 +235,154 @@ def get_stats():
             'by_rarity': by_rarity,
             'most_valuable': most_valuable
         })
+
+
+def parse_decklist(text):
+    """
+    Parse a decklist text into a list of (quantity, card_name) tuples.
+    Supports formats:
+        - "4x Lightning Bolt"
+        - "4 Lightning Bolt"
+        - "Lightning Bolt" (defaults to 1)
+    Ignores empty lines and lines starting with # or //
+    """
+    lines = text.strip().split('\n')
+    cards = []
+
+    # Pattern: optional quantity (with optional 'x'), then card name
+    pattern = re.compile(r'^(\d+)x?\s+(.+)$', re.IGNORECASE)
+
+    for line in lines:
+        line = line.strip()
+
+        # Skip empty lines and comments
+        if not line or line.startswith('#') or line.startswith('//'):
+            continue
+
+        # Skip sideboard markers
+        if line.lower() in ['sideboard', 'sideboard:', 'sb:', 'maindeck', 'maindeck:', 'md:']:
+            continue
+
+        match = pattern.match(line)
+        if match:
+            quantity = int(match.group(1))
+            card_name = match.group(2).strip()
+        else:
+            # No quantity specified, default to 1
+            quantity = 1
+            card_name = line
+
+        if card_name:
+            cards.append((quantity, card_name))
+
+    return cards
+
+
+@collection_bp.route('/import', methods=['POST'])
+def import_decklist():
+    """
+    Import a decklist into the collection.
+    Expects JSON body with 'decklist' field containing the decklist text.
+    Format: "<quantity>x <card name>" or "<quantity> <card name>" per line.
+
+    Returns:
+        - added: list of successfully added cards
+        - failed: list of cards that couldn't be found
+        - updated: list of cards whose quantity was updated (already in collection)
+    """
+    data = request.json
+
+    if not data or 'decklist' not in data:
+        return jsonify({'error': 'Request body must contain "decklist" field'}), 400
+
+    decklist_text = data['decklist']
+    if not decklist_text or not decklist_text.strip():
+        return jsonify({'error': 'Decklist cannot be empty'}), 400
+
+    # Parse the decklist
+    parsed_cards = parse_decklist(decklist_text)
+
+    if not parsed_cards:
+        return jsonify({'error': 'No valid cards found in decklist'}), 400
+
+    added = []
+    updated = []
+    failed = []
+
+    with get_cursor() as cursor:
+        for quantity, card_name in parsed_cards:
+            # Look up the card on Scryfall
+            card_data = get_card_by_name(card_name)
+
+            if not card_data:
+                failed.append({
+                    'name': card_name,
+                    'quantity': quantity,
+                    'reason': 'Card not found on Scryfall'
+                })
+                continue
+
+            # Check if card already exists in collection
+            cursor.execute(
+                "SELECT * FROM collection WHERE scryfall_id = %s AND foil = %s",
+                (card_data['scryfall_id'], False)
+            )
+            existing = cursor.fetchone()
+
+            if existing:
+                # Update quantity
+                new_quantity = existing['quantity'] + quantity
+                cursor.execute(
+                    "UPDATE collection SET quantity = %s WHERE id = %s RETURNING *",
+                    (new_quantity, existing['id'])
+                )
+                result = dict(cursor.fetchone())
+                if result.get('price_usd'):
+                    result['price_usd'] = float(result['price_usd'])
+                updated.append({
+                    'card': result,
+                    'added_quantity': quantity,
+                    'previous_quantity': existing['quantity']
+                })
+            else:
+                # Insert new card
+                cursor.execute("""
+                    INSERT INTO collection (
+                        scryfall_id, card_name, set_code, set_name, collector_number,
+                        rarity, mana_cost, type_line, image_url, price_usd,
+                        quantity, foil, condition, notes
+                    ) VALUES (
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    ) RETURNING *
+                """, (
+                    card_data['scryfall_id'],
+                    card_data['name'],
+                    card_data.get('set_code'),
+                    card_data.get('set_name'),
+                    card_data.get('collector_number'),
+                    card_data.get('rarity'),
+                    card_data.get('mana_cost'),
+                    card_data.get('type_line'),
+                    card_data.get('image_uri'),
+                    card_data.get('price'),
+                    quantity,
+                    False,  # foil
+                    'NM',   # condition
+                    None    # notes
+                ))
+                result = dict(cursor.fetchone())
+                if result.get('price_usd'):
+                    result['price_usd'] = float(result['price_usd'])
+                added.append(result)
+
+    return jsonify({
+        'added': added,
+        'updated': updated,
+        'failed': failed,
+        'summary': {
+            'total_lines': len(parsed_cards),
+            'added_count': len(added),
+            'updated_count': len(updated),
+            'failed_count': len(failed)
+        }
+    })
