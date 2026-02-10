@@ -24,7 +24,7 @@ services:
       - no-new-privileges:true
     environment:
       POSTGRES_USER: mtg
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-mtg_secret}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       POSTGRES_DB: mtg_collection
     volumes:
       - mtg_postgres_data:/var/lib/postgresql/data
@@ -58,7 +58,7 @@ services:
     cap_drop:
       - ALL
     environment:
-      DATABASE_URL: postgresql://mtg:${DB_PASSWORD:-mtg_secret}@db:5432/mtg_collection
+      DATABASE_URL: postgresql://mtg:${DB_PASSWORD:?DB_PASSWORD is required}@db:5432/mtg_collection
       FLASK_DEBUG: ${FLASK_DEBUG:-false}
       PORT: 5000
       FRONTEND_URL: ${FRONTEND_URL:-https://mtg.francony.fr}
