@@ -3,9 +3,10 @@
 #
 # NOTE: This app is behind the central nginx proxy (Infra repo)
 # No ports are exposed directly - traffic comes through nginx-proxy
+# Database is hosted centrally in the Infra stack (postgres container)
 #
 # Structure on Pi:
-#   ~/Hosting/Infra/           <- Central proxy (handles SSL & routing)
+#   ~/Hosting/Infra/           <- Central proxy + database
 #   ~/Hosting/MTG-Collection/  <- this repo
 #
 # Usage:
@@ -13,37 +14,6 @@
 #   docker compose up -d
 
 services:
-  # ============================================
-  # DATABASE - PostgreSQL
-  # ============================================
-  db:
-    image: postgres:15-alpine
-    container_name: mtg-db
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    environment:
-      POSTGRES_USER: mtg
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      POSTGRES_DB: mtg_collection
-    volumes:
-      - mtg_postgres_data:/var/lib/postgresql/data
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    expose:
-      - "5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mtg -d mtg_collection"]
-      interval: 60s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
   # ============================================
   # BACKEND - Python Flask API
   # ============================================
@@ -58,16 +28,13 @@ services:
     cap_drop:
       - ALL
     environment:
-      DATABASE_URL: postgresql://mtg:${DB_PASSWORD:?DB_PASSWORD is required}@db:5432/mtg_collection
+      DATABASE_URL: postgresql://mtg:${DB_PASSWORD:?DB_PASSWORD is required}@postgres:5432/mtg_collection
       FLASK_DEBUG: ${FLASK_DEBUG:-false}
       PORT: 5000
       FRONTEND_URL: ${FRONTEND_URL:-https://mtg.francony.fr}
       GOOGLE_APPLICATION_CREDENTIALS: /app/google-credentials.json
     expose:
       - "5000"
-    depends_on:
-      db:
-        condition: service_healthy
     volumes:
       - mtg_uploads:/app/uploads
       - /home/bloster/Hosting/MTG-Collection/backend/google-credentials.json:/app/google-credentials.json:ro
@@ -106,7 +73,6 @@ services:
         max-file: "3"
 
 volumes:
-  mtg_postgres_data:
   mtg_uploads:
 
 networks:
