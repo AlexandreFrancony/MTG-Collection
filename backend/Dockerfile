@@ -22,6 +22,11 @@ COPY . .
 # Create uploads directory
 RUN mkdir -p /app/uploads
 
+# Run as non-root user
+RUN groupadd -r appgroup && useradd -r -g appgroup -d /app appuser \
+    && chown -R appuser:appgroup /app
+USER appuser
+
 # Expose port
 EXPOSE 5000
 

@@ -20,6 +20,8 @@ services:
     image: postgres:15-alpine
     container_name: mtg-db
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     environment:
       POSTGRES_USER: mtg
       POSTGRES_PASSWORD: ${DB_PASSWORD:-mtg_secret}
@@ -51,6 +53,10 @@ services:
       dockerfile: Dockerfile
     container_name: mtg-backend
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     environment:
       DATABASE_URL: postgresql://mtg:${DB_PASSWORD:-mtg_secret}@db:5432/mtg_collection
       FLASK_DEBUG: ${FLASK_DEBUG:-false}
@@ -84,6 +90,10 @@ services:
         VITE_API_URL: ""
     container_name: mtg-frontend
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     expose:
       - "80"
     depends_on:
