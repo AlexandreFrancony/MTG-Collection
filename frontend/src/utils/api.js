@@ -2,16 +2,52 @@
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
+// ── Auth ──────────────────────────────────────
+let _authHeader = null;
+
+export function setAuth(user, pass) {
+  _authHeader = 'Basic ' + btoa(user + ':' + pass);
+}
+
+export function clearAuth() {
+  _authHeader = null;
+}
+
+export function isAuthenticated() {
+  return _authHeader !== null;
+}
+
+export async function checkCredentials(user, pass) {
+  const header = 'Basic ' + btoa(user + ':' + pass);
+  try {
+    const resp = await fetch('/auth-check', {
+      headers: { 'Authorization': header },
+    });
+    if (resp.ok) {
+      _authHeader = header;
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+// ── API request ───────────────────────────────
 async function request(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
 
-  const config = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
   };
+
+  // Inject auth header
+  if (_authHeader) {
+    headers['Authorization'] = _authHeader;
+  }
+
+  const config = { ...options, headers };
 
   // Don't set Content-Type for FormData
   if (options.body instanceof FormData) {
@@ -19,6 +55,12 @@ async function request(endpoint, options = {}) {
   }
 
   const response = await fetch(url, config);
+
+  if (response.status === 401) {
+    clearAuth();
+    window.dispatchEvent(new Event('auth-expired'));
+    throw new Error('Unauthorized');
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
