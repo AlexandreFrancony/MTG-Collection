@@ -2,9 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Terracota Cream Theme - Light mode (default) */
+:root {
+  --bg-primary: #F5EFE0;
+  --bg-card: #EFE6D6;
+  --bg-header: #E8DECA;
+  --bg-input: #E8DECA;
+  --border: #D3C5AE;
+  --text-primary: #3E2E22;
+  --text-secondary: #5A4634;
+  --text-muted: #8A7A6A;
+  --accent: #C65F3C;
+  --accent-hover: #B34924;
+}
+
+/* Terracota Cream Theme - Dark mode */
+.dark {
+  --bg-primary: #2A2018;
+  --bg-card: #382A20;
+  --bg-header: #231B14;
+  --bg-input: #3E2E22;
+  --border: #5A4634;
+  --text-primary: #F5EFE0;
+  --text-secondary: #E6D7C3;
+  --text-muted: #8A7A6A;
+  --accent: #C65F3C;
+  --accent-hover: #D87D5C;
+}
+
 body {
-  @apply bg-gray-900 text-gray-100;
-  font-family: system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 /* Card hover effects */
@@ -23,14 +52,14 @@ body {
 
 .mana-W { @apply bg-amber-100 text-amber-900; }
 .mana-U { @apply bg-blue-500 text-white; }
-.mana-B { @apply bg-gray-800 text-gray-100; }
+.mana-B { background-color: #150B00; @apply text-gray-100; }
 .mana-R { @apply bg-red-500 text-white; }
 .mana-G { @apply bg-green-600 text-white; }
 .mana-C { @apply bg-gray-400 text-gray-900; }
 
 /* Rarity colors */
-.rarity-common { @apply text-gray-400; }
-.rarity-uncommon { @apply text-gray-300; }
+.rarity-common { color: var(--text-muted); }
+.rarity-uncommon { color: var(--text-secondary); }
 .rarity-rare { @apply text-yellow-400; }
 .rarity-mythic { @apply text-orange-500; }
 
@@ -41,13 +70,20 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-gray-800;
+  background-color: var(--bg-card);
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-600 rounded;
+  background-color: var(--border);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-500;
+  background-color: var(--text-muted);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) var(--bg-card);
 }

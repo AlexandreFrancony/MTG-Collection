@@ -65,17 +65,17 @@ export default function Stats() {
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* By Set */}
-        <div className="bg-gray-800 rounded-lg p-4">
+        <div className="bg-[var(--bg-card)] rounded-lg p-4">
           <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
             <Package size={20} /> Cards by Set
           </h3>
           {stats.by_set.length === 0 ? (
-            <p className="text-gray-400">No data yet</p>
+            <p className="text-[var(--text-muted)]">No data yet</p>
           ) : (
             <div className="space-y-2">
               {stats.by_set.map((set) => (
                 <div key={set.set_code} className="flex justify-between items-center">
-                  <span className="text-gray-300">
+                  <span className="text-[var(--text-secondary)]">
                     {set.set_name || set.set_code || 'Unknown'}
                   </span>
                   <span className="text-mtg-gold font-medium">{set.total}</span>
@@ -86,12 +86,12 @@ export default function Stats() {
         </div>
 
         {/* By Rarity */}
-        <div className="bg-gray-800 rounded-lg p-4">
+        <div className="bg-[var(--bg-card)] rounded-lg p-4">
           <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
             <Star size={20} /> Cards by Rarity
           </h3>
           {stats.by_rarity.length === 0 ? (
-            <p className="text-gray-400">No data yet</p>
+            <p className="text-[var(--text-muted)]">No data yet</p>
           ) : (
             <div className="space-y-2">
               {stats.by_rarity.map((rarity) => (
@@ -108,17 +108,17 @@ export default function Stats() {
       </div>
 
       {/* Most valuable */}
-      <div className="bg-gray-800 rounded-lg p-4">
+      <div className="bg-[var(--bg-card)] rounded-lg p-4">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
           <Euro size={20} /> Most Valuable Cards
         </h3>
         {stats.most_valuable.length === 0 ? (
-          <p className="text-gray-400">No priced cards yet</p>
+          <p className="text-[var(--text-muted)]">No priced cards yet</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-gray-400 border-b border-gray-700">
+                <tr className="text-left text-[var(--text-muted)] border-b border-[var(--border)]">
                   <th className="pb-2">Card</th>
                   <th className="pb-2">Set</th>
                   <th className="pb-2 text-center">Qty</th>
@@ -127,7 +127,7 @@ export default function Stats() {
               </thead>
               <tbody>
                 {stats.most_valuable.map((card, i) => (
-                  <tr key={i} className="border-b border-gray-700/50">
+                  <tr key={i} className="border-b border-[var(--border)]/50">
                     <td className="py-2">
                       {card.card_name}
                       {card.foil && (
@@ -136,7 +136,7 @@ export default function Stats() {
                         </span>
                       )}
                     </td>
-                    <td className="py-2 text-gray-400 uppercase">{card.set_code}</td>
+                    <td className="py-2 text-[var(--text-muted)] uppercase">{card.set_code}</td>
                     <td className="py-2 text-center">{card.quantity}</td>
                     <td className="py-2 text-right text-green-400">
                       {parseFloat(card.price_usd).toFixed(2)}€
@@ -154,12 +154,12 @@ export default function Stats() {
 
 function StatCard({ icon, label, value }) {
   return (
-    <div className="bg-gray-800 rounded-lg p-4 flex items-center gap-4">
-      <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center">
+    <div className="bg-[var(--bg-card)] rounded-lg p-4 flex items-center gap-4">
+      <div className="w-12 h-12 bg-[var(--bg-input)] rounded-full flex items-center justify-center">
         {icon}
       </div>
       <div>
-        <p className="text-gray-400 text-sm">{label}</p>
+        <p className="text-[var(--text-muted)] text-sm">{label}</p>
         <p className="text-2xl font-bold">{value}</p>
       </div>
     </div>

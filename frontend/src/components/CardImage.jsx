@@ -7,10 +7,10 @@ export default function CardImage({ src, alt, className = '' }) {
 
   if (error || !src) {
     return (
-      <div className={`bg-gray-700 flex items-center justify-center ${className}`}>
+      <div className={`bg-[var(--bg-input)] flex items-center justify-center ${className}`}>
         <div className="text-center p-4">
-          <span className="text-4xl">🎴</span>
-          <p className="text-xs text-gray-400 mt-2 truncate max-w-[100px]">{alt}</p>
+          <span className="text-4xl">&#x1F3B4;</span>
+          <p className="text-xs text-[var(--text-muted)] mt-2 truncate max-w-[100px]">{alt}</p>
         </div>
       </div>
     );

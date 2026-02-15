@@ -67,7 +67,7 @@ export default function Collection() {
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div>
           <h2 className="text-2xl font-bold">My Collection</h2>
-          <p className="text-gray-400">
+          <p className="text-[var(--text-muted)]">
             {stats.unique_cards} unique cards • {stats.total_cards} total •{' '}
             <span className="text-green-400">{stats.total_value.toFixed(2)}€</span>
           </p>
@@ -75,13 +75,13 @@ export default function Collection() {
 
         {/* Search */}
         <div className="relative w-full sm:w-auto">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={20} />
           <input
             type="text"
             placeholder="Search collection..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full sm:w-64 pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-mtg-gold"
+            className="w-full sm:w-64 pl-10 pr-4 py-2 bg-[var(--bg-card)] border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-mtg-gold"
           />
         </div>
       </div>
@@ -102,7 +102,7 @@ export default function Collection() {
 
       {/* Empty state */}
       {!loading && cards.length === 0 && (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-[var(--text-muted)]">
           <p className="text-lg">No cards in your collection yet.</p>
           <p>Use the Search or Scan features to add cards!</p>
         </div>
@@ -121,7 +121,7 @@ export default function Collection() {
 
               {/* Quantity badge */}
               <div className="absolute top-2 right-2 bg-black/80 text-white px-2 py-1 rounded-full text-sm font-bold">
-                ×{card.quantity}
+                x{card.quantity}
               </div>
 
               {/* Foil indicator */}
@@ -133,18 +133,18 @@ export default function Collection() {
 
               {/* Hover controls */}
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <p className="text-sm font-medium truncate mb-2">{card.card_name}</p>
+                <p className="text-sm font-medium truncate mb-2 text-white">{card.card_name}</p>
                 <div className="flex justify-between items-center">
                   <div className="flex gap-1">
                     <button
                       onClick={() => handleQuantityChange(card.id, -1)}
-                      className="p-1 bg-gray-700 hover:bg-gray-600 rounded"
+                      className="p-1 bg-[var(--bg-input)] hover:bg-[var(--border)] rounded text-white"
                     >
                       <Minus size={16} />
                     </button>
                     <button
                       onClick={() => handleQuantityChange(card.id, 1)}
-                      className="p-1 bg-gray-700 hover:bg-gray-600 rounded"
+                      className="p-1 bg-[var(--bg-input)] hover:bg-[var(--border)] rounded text-white"
                     >
                       <Plus size={16} />
                     </button>
