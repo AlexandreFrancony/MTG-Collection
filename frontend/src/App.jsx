@@ -61,14 +61,20 @@ function LoginScreen() {
         <p className="text-[var(--text-muted)] text-sm mb-6">Authentification requise</p>
         <form onSubmit={handleLogin}>
           <input
+            id="username"
+            name="username"
             type="text"
+            autoComplete="username"
             placeholder="Utilisateur"
             value={user}
             onChange={(e) => setUser(e.target.value)}
             className="w-full p-2 rounded-lg mb-3 bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-primary)] focus:border-mtg-gold focus:outline-none"
           />
           <input
+            id="password"
+            name="password"
             type="password"
+            autoComplete="current-password"
             placeholder="Mot de passe"
             value={pass}
             onChange={(e) => setPass(e.target.value)}
