@@ -19,18 +19,18 @@ A Magic: The Gathering card collection tracker with Scryfall integration. Search
 - **Backend**: Python Flask
 - **Database**: PostgreSQL 15
 - **Card Data**: Scryfall API (free, no key required)
-- **Deployment**: Docker on Raspberry Pi 4
+- **Deployment**: Docker on HP ProDesk (via Pangolin/Traefik)
 
 ## Architecture
 
 ```
+Internet → VPS (Pangolin/Traefik) → WireGuard tunnel → ProDesk
+
 ┌─────────────────────────────────────────────────────────────┐
-│                      Raspberry Pi 4                         │
+│                   HP ProDesk 400 G5                          │
 ├─────────────────────────────────────────────────────────────┤
-│  Central Infra (nginx-proxy)                                │
+│  Newt (WireGuard tunnel) ← mtg.francony.fr                 │
 │       │                                                     │
-│       ├── mtg.francony.fr ──┐                              │
-│       │                     ▼                              │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │                  mtg_network                         │   │
 │  │  ┌──────────┐  ┌──────────┐  ┌───────────────────┐  │   │

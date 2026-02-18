@@ -8,7 +8,7 @@ A Magic: The Gathering card collection tracker with image recognition. Users can
 - **Backend**: Python Flask (for image processing with OpenCV/Tesseract)
 - **Database**: PostgreSQL
 - **Card Data**: Scryfall API
-- **Deployment**: Docker on Raspberry Pi 4
+- **Deployment**: Docker on HP ProDesk (via Pangolin/Traefik)
 
 ## Architecture
 ```
