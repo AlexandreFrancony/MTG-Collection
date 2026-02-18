@@ -1,16 +1,15 @@
 # MTG Collection Tracker
-# Deploy on Raspberry Pi 4
+# Deploy on ProDesk (HP ProDesk 400 G5)
 #
-# NOTE: This app is behind the central nginx proxy (Infra repo)
-# No ports are exposed directly - traffic comes through nginx-proxy
+# Traffic routed via Pangolin/Traefik on VPS through Newt tunnel
 # Database is hosted centrally in the Infra stack (postgres container)
 #
-# Structure on Pi:
-#   ~/Hosting/Infra/           <- Central proxy + database
+# Structure on ProDesk:
+#   ~/Hosting/Infra/           <- Central database
 #   ~/Hosting/MTG-Collection/  <- this repo
 #
 # Usage:
-#   cd ~/MTG-Collection
+#   cd ~/Hosting/MTG-Collection
 #   docker compose up -d
 
 services:
