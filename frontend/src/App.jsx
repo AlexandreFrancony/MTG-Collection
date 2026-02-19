@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import { Library, Search, Camera, FileText, BarChart3, Sun, Moon } from 'lucide-react';
 import Collection from './pages/Collection';
@@ -6,7 +6,6 @@ import CardSearch from './pages/CardSearch';
 import Scanner from './pages/Scanner';
 import Import from './pages/Import';
 import Stats from './pages/Stats';
-import { checkCredentials, isAuthenticated, clearAuth } from './utils/api';
 
 function ThemeToggle() {
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
@@ -30,93 +29,7 @@ function ThemeToggle() {
   );
 }
 
-function LoginScreen() {
-  const [user, setUser] = useState('');
-  const [pass, setPass] = useState('');
-  const [error, setError] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError(false);
-    setLoading(true);
-    const ok = await checkCredentials(user, pass);
-    setLoading(false);
-    if (ok) {
-      window.dispatchEvent(new Event('auth-changed'));
-    } else {
-      setError(true);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
-      <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-8 w-full max-w-sm">
-        <h2 className="text-2xl font-bold text-mtg-gold mb-2 flex items-center gap-2">
-          MTG Collection
-        </h2>
-        <p className="text-[var(--text-muted)] text-sm mb-6">Authentification requise</p>
-        <form onSubmit={handleLogin}>
-          <input
-            id="username"
-            name="username"
-            type="text"
-            autoComplete="username"
-            placeholder="Utilisateur"
-            value={user}
-            onChange={(e) => setUser(e.target.value)}
-            className="w-full p-2 rounded-lg mb-3 bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-primary)] focus:border-mtg-gold focus:outline-none"
-          />
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            placeholder="Mot de passe"
-            value={pass}
-            onChange={(e) => setPass(e.target.value)}
-            className="w-full p-2 rounded-lg mb-4 bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-primary)] focus:border-mtg-gold focus:outline-none"
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2 rounded-lg font-semibold bg-mtg-gold text-[var(--bg-primary)] hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            {loading ? 'Connexion...' : 'Connexion'}
-          </button>
-          {error && (
-            <p className="text-red-400 text-sm mt-2">Identifiants incorrects</p>
-          )}
-        </form>
-      </div>
-    </div>
-  );
-}
-
 function App() {
-  const [authed, setAuthed] = useState(isAuthenticated());
-
-  useEffect(() => {
-    const onChanged = () => setAuthed(isAuthenticated());
-    const onExpired = () => {
-      clearAuth();
-      setAuthed(false);
-    };
-    window.addEventListener('auth-changed', onChanged);
-    window.addEventListener('auth-expired', onExpired);
-    return () => {
-      window.removeEventListener('auth-changed', onChanged);
-      window.removeEventListener('auth-expired', onExpired);
-    };
-  }, []);
-
-  if (!authed) {
-    return <LoginScreen />;
-  }
-
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-[var(--bg-primary)]">
